@@ -2,36 +2,36 @@ name: Daily SM Data Update
 
 on:
   schedule:
-    # 每天北京时间 16:30 运行 (UTC 时间 08:30)
-    # 格式是: 分 时 天 月 周
+    # 设定在每天北京时间 16:30 执行 (UTC 时间 08:30)
+    # 期货市场下午 15:00 收盘，16:30 数据绝对已经更新完毕
     - cron: '30 8 * * *'
-  workflow_dispatch: # 允许你手动点击按钮触发运行
+  workflow_dispatch: # 保留手动触发按钮
 
 jobs:
-  build:
+  update-data:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: 检出代码
-      uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-    - name: 设置 Python 环境
-      uses: actions/setup-python@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.12' # 匹配你本地的版本
 
-    - name: 安装依赖库
+    - name: Install Dependencies
       run: |
+        python -m pip install --upgrade pip
         pip install akshare pandas
 
-    - name: 运行抓取脚本
-      run: |
-        python sm_collector.py
+    - name: Run Daily Update Script
+      run: python update_daily.py
 
-    - name: 提交并推送数据更新
+    - name: Commit and Push Changes
       run: |
-        git config --global user.name "GitHub Action"
-        git config --global user.email "action@github.com"
-        git add sm_futures_data.csv
-        git commit -m "自动更新锰硅数据: $(date)" || echo "没有新数据可更新"
-        git push
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add sm_research_db/*.csv
+        # 只有在有新数据变动时才提交，否则跳过
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update SM data: $(date +'%Y-%m-%d')" && git push)
