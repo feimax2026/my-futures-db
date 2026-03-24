@@ -2,10 +2,12 @@ name: Daily SM Data Update
 
 on:
   schedule:
-    # 设定在每天北京时间 16:30 执行 (UTC 时间 08:30)
-    # 期货市场下午 15:00 收盘，16:30 数据绝对已经更新完毕
     - cron: '30 8 * * *'
-  workflow_dispatch: # 保留手动触发按钮
+  workflow_dispatch:
+
+# 加这行环境变量，彻底消除 Node.js 的烦人警告
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   update-data:
@@ -18,7 +20,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12' # 匹配你本地的版本
+        python-version: '3.12'
 
     - name: Install Dependencies
       run: |
@@ -33,5 +35,7 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         git add sm_research_db/*.csv
-        # 只有在有新数据变动时才提交，否则跳过
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update SM data: $(date +'%Y-%m-%d')" && git push)
+        
+        # 终极安全提交法：如果有更新就提交，如果没有更新就跳过(不抛出错误码)
+        git commit -m "Auto-update SM data: $(date +'%Y-%m-%d')" || true
+        git push || true
